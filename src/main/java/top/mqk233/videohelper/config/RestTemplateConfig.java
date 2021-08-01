@@ -6,6 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.client.RestTemplate;
 import top.mqk233.videohelper.util.ChromiumUtils;
 
@@ -27,7 +28,7 @@ public class RestTemplateConfig {
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder.customizers(restTemplate -> {
             List<JSONObject> releases = ChromiumUtils.randomReleases(restTemplate);
-            String version = releases.get(secureRandom.nextInt(releases.size())).getString("version");
+            String version = CollectionUtils.isEmpty(releases) ? "92.0.4515.107" : releases.get(secureRandom.nextInt(releases.size())).getString("version");
             String agent = String.format("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", version);
             restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
             restTemplate.getInterceptors().add((httpRequest, bytes, clientHttpRequestExecution) -> {
