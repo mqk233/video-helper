@@ -45,7 +45,7 @@
                     </el-col>
                 </el-row>
                 <el-row gutter="20" v-if="videoDetailVO.episodes !=null && Object.keys(videoDetailVO.episodes).length > 0">
-                    <el-col :xs="8" :sm="6" :md="4" :lg="2" :xl="1" v-for="(value, key) in videoDetailVO.episodes">
+                    <el-col :xs="6" :sm="6" :md="4" :lg="2" :xl="1" v-for="(value, key) in videoDetailVO.episodes">
                         <div style="text-align: center">
                             <el-radio-group size="medium" v-model="playAddress" @change="resolveVideo">
                                 <el-radio-button style="margin: 10% 0" :label=value>{{key < 10 ? "0" + key : key}}</el-radio-button>
@@ -131,6 +131,9 @@
                 });
             },
             resolveVideo() {
+                let video = document.getElementById('video');
+                let lastPlaybackRate = video.playbackRate;
+                video.src = "";
                 axios.get(this.globalVariable.backendAddress + '/video/resolve', {
                     params: {
                         sourceAddress: this.playAddress
@@ -139,7 +142,6 @@
                     if (response.data.code === 1000) {
                         let playAddress = response.data.data;
                         let video = document.getElementById('video');
-                        let lastPlaybackRate = video.playbackRate;
                         if (Hls.isSupported()) {
                             let hls = new Hls();
                             hls.loadSource(playAddress);
@@ -148,7 +150,6 @@
                             video.src = playAddress;
                         }
                         video.playbackRate = lastPlaybackRate;
-                        video.load();
                     } else {
                         this.sendMessage("error", "解析视频失败")
                     }
