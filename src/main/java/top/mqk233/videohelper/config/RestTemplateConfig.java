@@ -27,7 +27,7 @@ public class RestTemplateConfig {
     @Bean
     public RestTemplate restTemplate(RestTemplateBuilder builder) {
         return builder.customizers(restTemplate -> {
-            List<JSONObject> releases = ChromiumUtils.randomReleases(restTemplate);
+            List<JSONObject> releases = ChromiumUtils.fetchReleases(restTemplate);
             String version = CollectionUtils.isEmpty(releases) ? "92.0.4515.107" : releases.get(secureRandom.nextInt(releases.size())).getString("version");
             String agent = String.format("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", version);
             restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());

@@ -32,7 +32,7 @@ public class ChromiumUtils {
 
     private static final Random secureRandom = new SecureRandom();
 
-    public static List<JSONObject> randomReleases(RestTemplate restTemplate) {
+    public static List<JSONObject> fetchReleases(RestTemplate restTemplate) {
         HttpRoutePlanner httpRoutePlanner = new DefaultProxyRoutePlanner(new HttpHost("127.0.0.1", 1080));
         HttpClient httpClient = HttpClientBuilder.create().setRoutePlanner(httpRoutePlanner).build();
         restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory(httpClient));
