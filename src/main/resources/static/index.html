@@ -39,10 +39,12 @@
                 <div style="text-align: center">
                     <video style="width: 100%" id="video" controls="controls" poster="cover.png" autoplay></video>
                 </div>
-                <el-row justify="center">
+                <el-row>
+                    <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8" @click="getVideoResolution"></el-col>
                     <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
                         <el-slider input-size="medium" :min="0.5" :max="2.5" :step="0.5" v-model="playSpeed" @change="setPlaySpeed"></el-slider>
                     </el-col>
+                    <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8" @click="getVideoResolution"></el-col>
                 </el-row>
                 <el-row gutter="20" v-if="videoDetailVO.episodes !=null && Object.keys(videoDetailVO.episodes).length > 0">
                     <el-col :xs="6" :sm="6" :md="4" :lg="2" :xl="1" v-for="(value, key) in videoDetailVO.episodes">
@@ -53,7 +55,7 @@
                         </div>
                     </el-col>
                 </el-row>
-                <p @click="getVideoResolution">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{videoDetailVO.description}}</p>
+                <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{videoDetailVO.description}}</p>
             </el-dialog>
         </el-main>
         <el-footer>
