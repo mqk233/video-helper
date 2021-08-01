@@ -148,6 +148,7 @@
                             video.src = playAddress;
                         }
                         video.playbackRate = lastPlaybackRate;
+                        video.load();
                     } else {
                         this.sendMessage("error", "解析视频失败")
                     }
