@@ -66,7 +66,9 @@ public class VideoServiceImpl implements VideoService {
                                             && StringUtils.hasText(g.getString("actor"))
                                             && Arrays.asList("内地", "美国", "英国", "韩国", "泰国", "日本", "中国香港", "中国台湾").contains(g.getString("area"))
                                             && StringUtils.hasText(g.getString("secondTitle"))
-                                            && !g.getJSONArray("titleMarkLabelList").isEmpty())
+                                            && !g.getJSONArray("titleMarkLabelList").isEmpty()
+                                            && !g.getJSONArray("videoSrcName").isEmpty()
+                                            && Optional.ofNullable(g.getJSONArray("videoSrcName").getJSONObject(0)).map(v -> v.getIntValue("displayType") == 0).orElse(false))
                                     .orElse(false))
                             .map(h -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
