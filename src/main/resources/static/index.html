@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+    <title>视频助手</title>
+    <link rel="icon" href="favicon.ico">
+    <script src="https://cdn.jsdelivr.net/npm/vue@3.1.5/dist/vue.global.prod.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@1.0.2-beta.65/lib/theme-chalk/index.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/element-plus@1.0.2-beta.65/lib/index.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios@0.21.1/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.0.7/dist/hls.min.js"></script>
+</head>
+<body>
+<div id="videoHelper" style="margin: 1% 1%">
+    <el-container>
+        <el-header>
+            <el-form ref="form" @submit.native.prevent>
+                <el-form-item style="text-align: center">
+                    <el-input v-model="keywords" @keyup.enter.native="searchVideo" clearable style="width: 30%"></el-input>
+                    <el-button type="primary" plain icon="el-icon-search" @click="searchVideo">搜索</el-button>
+                </el-form-item>
+            </el-form>
+        </el-header>
+        <el-main>
+            <el-row gutter="30" v-if="videoSearchVOs != null && videoSearchVOs.length > 0">
+                <el-col :xs="12" :sm="8" :md="6" :lg="4" :xl="3" v-for="videoSearchVOTemp in videoSearchVOs">
+                    <el-card style="text-align: center">
+                        <img v-bind:src=videoSearchVOTemp.cover v-bind:alt=videoSearchVOTemp.name @click="detailVideo(videoSearchVOTemp.address)"
+                             referrerpolicy="no-referrer" style="width: 120px; height: 160px">
+                        <h3 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
+                            <a target="_blank" v-bind:href=videoSearchVOTemp.address style="text-decoration: none">{{videoSearchVOTemp.name}}</a>
+                        </h3>
+                        <p style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{videoSearchVOTemp.actors.join(" ")}}</p>
+                    </el-card>
+                </el-col>
+            </el-row>
+            <el-dialog :title=videoDetailVO.name v-model="dialogVisible" width="80%" center="true" modal="false" destroy-on-close="true">
+                <div style="text-align: center">
+                    <video style="width: 100%" id="video" controls="controls" poster="cover.png" autoplay></video>
+                </div>
+                <el-row justify="center">
+                    <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
+                        <el-slider input-size="medium" :min="0.5" :max="2.5" :step="0.5" v-model="playSpeed" @change="setPlaySpeed"></el-slider>
+                    </el-col>
+                </el-row>
+                <el-row gutter="20" v-if="videoDetailVO.episodes !=null && Object.keys(videoDetailVO.episodes).length > 0">
+                    <el-col :xs="8" :sm="6" :md="4" :lg="2" :xl="1" v-for="(value, key) in videoDetailVO.episodes">
+                        <div style="text-align: center">
+                            <el-radio-group size="medium" v-model="playAddress" @change="resolveVideo">
+                                <el-radio-button style="margin: 10% 0" :label=value>{{key < 10 ? "0" + key : key}}</el-radio-button>
+                            </el-radio-group>
+                        </div>
+                    </el-col>
+                </el-row>
+                <p @click="getVideoResolution">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{videoDetailVO.description}}</p>
+            </el-dialog>
+        </el-main>
+        <el-footer>
+
+        </el-footer>
+    </el-container>
+</div>
+<script>
+    const VideoHelperApp = {
+        data() {
+            return {
+                globalVariable: {
+                    backendAddress: "https://pavilion.mqk233.top:8081"
+                },
+                dialogVisible: false,
+                playSpeed: 1,
+                playAddress: "",
+                keywords: "",
+                videoSearchVO: {
+                    source: "",
+                    address: "",
+                    name: "",
+                    cover: "",
+                    actors: []
+                },
+                videoDetailVO: {
+                    name: "",
+                    description: "",
+                    episodes: {}
+                },
+                videoSearchVOs: []
+            };
+        },
+        methods: {
+            sendMessage(type, message) {
+                const {ElMessage} = ElementPlus
+                ElMessage({
+                    type: type,
+                    message: message,
+                    center: true
+                });
+            },
+            getVideoResolution() {
+                let video = document.getElementById('video');
+                this.sendMessage("info", "视频分辨率：" + video.videoWidth + "×" + video.videoHeight)
+            },
+            setPlaySpeed() {
+                document.getElementById("video").playbackRate = this.playSpeed;
+            },
+            searchVideo() {
+                axios.get(this.globalVariable.backendAddress + '/video/search', {
+                    params: {
+                        keywords: this.keywords
+                    }
+                }).then((response) => {
+                    if (response.data.code === 1000) {
+                        this.videoSearchVOs = response.data.data;
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            detailVideo(address) {
+                axios.get(this.globalVariable.backendAddress + '/video/detail', {
+                    params: {
+                        address: address
+                    }
+                }).then((response) => {
+                    if (response.data.code === 1000) {
+                        this.videoDetailVO = response.data.data;
+                        this.dialogVisible = true;
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            },
+            resolveVideo() {
+                axios.get(this.globalVariable.backendAddress + '/video/resolve', {
+                    params: {
+                        sourceAddress: this.playAddress
+                    }
+                }).then((response) => {
+                    if (response.data.code === 1000) {
+                        let playAddress = response.data.data;
+                        let video = document.getElementById('video');
+                        let lastPlaybackRate = video.playbackRate;
+                        if (Hls.isSupported()) {
+                            let hls = new Hls();
+                            hls.loadSource(playAddress);
+                            hls.attachMedia(video);
+                        } else {
+                            video.src = playAddress;
+                        }
+                        video.playbackRate = lastPlaybackRate;
+                    } else {
+                        this.sendMessage("error", "解析视频失败")
+                    }
+                }).catch((error) => {
+                    console.log(error);
+                });
+            }
+        }
+    };
+    Vue.createApp(VideoHelperApp).use(ElementPlus).mount("#videoHelper");
+</script>
+</body>
+</html>
