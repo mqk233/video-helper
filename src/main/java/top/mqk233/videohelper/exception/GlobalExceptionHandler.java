@@ -23,7 +23,6 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(value = SystemException.class)
     public Result<String> systemExceptionHandler(SystemException systemException) {
-        log.error(systemException.getMessage());
         systemException.getCause().printStackTrace();
         return new Result<>(ResultEnum.SYSTEM_EXCEPTION);
     }

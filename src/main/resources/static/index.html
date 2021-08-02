@@ -9,7 +9,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@1.0.2-beta.65/lib/theme-chalk/index.min.css">
     <script src="https://cdn.jsdelivr.net/npm/element-plus@1.0.2-beta.65/lib/index.full.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@0.21.1/dist/axios.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/hls.js@1.0.7/dist/hls.min.js"></script>
 </head>
 <body>
 <div id="videoHelper" style="margin: 1% 1%">
@@ -46,12 +45,15 @@
                 <div style="text-align: center">
                     <video style="width: 100%" id="video" controls="controls" poster="cover.png" autoplay></video>
                 </div>
-                <el-row>
-                    <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8" @click="getVideoResolution"></el-col>
-                    <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8">
-                        <el-slider input-size="medium" :min="0.5" :max="2.5" :step="0.5" v-model="playSpeed" @change="setPlaySpeed"></el-slider>
+                <el-row style="text-align: center; margin: 1% 0">
+                    <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
+                        <el-select size="medium" v-model="resolveInterface" style="width: 98px">
+                            <el-option v-for="item in resolveInterfaces" :key="item.value" :label="item.key" :value="item.value"></el-option>
+                        </el-select>
                     </el-col>
-                    <el-col :xs="8" :sm="8" :md="8" :lg="8" :xl="8" @click="getVideoResolution"></el-col>
+                    <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
+                        <el-button size="medium" @click="resolveVideo">手动解析</el-button>
+                    </el-col>
                 </el-row>
                 <el-row gutter="20" v-if="videoDetailVO.episodes !=null && Object.keys(videoDetailVO.episodes).length > 0">
                     <el-col :xs="6" :sm="6" :md="4" :lg="2" :xl="1" v-for="(value, key) in videoDetailVO.episodes">
@@ -65,9 +67,7 @@
                 <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{videoDetailVO.description}}</p>
             </el-dialog>
         </el-main>
-        <el-footer>
-
-        </el-footer>
+        <el-footer></el-footer>
     </el-container>
 </div>
 <script>
@@ -78,8 +78,6 @@
                     backendAddress: "https://pavilion.mqk233.top:8081"
                 },
                 dialogVisible: false,
-                playSpeed: 1,
-                playAddress: "",
                 keywords: "",
                 videoSearchVO: {
                     source: "",
@@ -88,32 +86,37 @@
                     cover: "",
                     actors: []
                 },
+                videoSearchVOs: [],
                 videoDetailVO: {
                     name: "",
                     description: "",
                     episodes: {}
                 },
-                videoSearchVOs: []
+                playAddress: "",
+                resolveInterfaces: [
+                    {key: "接口1", value: "https://www.8090.la/8090/?url="},
+                    {key: "接口2", value: "https://api.jiexi.la/?url="},
+                    {key: "接口3", value: "https://www.ckplayer.vip/jiexi/?url="},
+                    {key: "接口4", value: "https://www.playm3u8.cn/jiexi.php?url="},
+                    {key: "接口5", value: "https://www.pangujiexi.cc/jiexi.php?url="},
+                    {key: "接口6", value: "https://jx.m3u8.tv/jiexi/?url="},
+                    {key: "接口7", value: "https://www.1717yun.com/api/?url="},
+                    {key: "接口8", value: "https://vip.parwix.com:4433/player/?url="},
+                    {key: "接口9", value: "https://qimihe.com/?url="},
+                    {key: "接口10", value: "https://okjx.cc/?url="},
+                    {key: "接口11", value: "https://www.nxflv.com/?url="},
+                    {key: "接口12", value: "https://jx.keleapi.com/?url="},
+                    {key: "接口13", value: "https://jx.jiubojx.com/vip/?url="},
+                    {key: "接口14", value: "https://www.administratorw.com/admin.php?url="},
+                    {key: "接口15", value: "https://www.administratorw.com/video.php?url="},
+                    {key: "接口16", value: "https://www.administratorw.com/index.php?url="}
+                ],
+                resolveInterface: "https://www.8090.la/8090/?url="
             };
         },
         methods: {
-            sendMessage(type, message) {
-                const {ElMessage} = ElementPlus
-                ElMessage({
-                    type: type,
-                    message: message,
-                    center: true
-                });
-            },
-            getVideoResolution() {
-                let video = document.getElementById('video');
-                this.sendMessage("info", "视频分辨率：" + video.videoWidth + "×" + video.videoHeight)
-            },
-            setPlaySpeed() {
-                document.getElementById("video").playbackRate = this.playSpeed;
-            },
             searchVideo() {
-                axios.get(this.globalVariable.backendAddress + '/video/search', {
+                axios.get(this.globalVariable.backendAddress + "/video/search", {
                     params: {
                         keywords: this.keywords
                     }
@@ -126,7 +129,7 @@
                 });
             },
             detailVideo(address) {
-                axios.get(this.globalVariable.backendAddress + '/video/detail', {
+                axios.get(this.globalVariable.backendAddress + "/video/detail", {
                     params: {
                         address: address
                     }
@@ -140,31 +143,7 @@
                 });
             },
             resolveVideo() {
-                let video = document.getElementById('video');
-                let lastPlaybackRate = video.playbackRate;
-                video.src = "";
-                axios.get(this.globalVariable.backendAddress + '/video/resolve', {
-                    params: {
-                        sourceAddress: this.playAddress
-                    }
-                }).then((response) => {
-                    if (response.data.code === 1000) {
-                        let playAddress = response.data.data;
-                        let video = document.getElementById('video');
-                        if (Hls.isSupported()) {
-                            let hls = new Hls();
-                            hls.loadSource(playAddress);
-                            hls.attachMedia(video);
-                        } else {
-                            video.src = playAddress;
-                        }
-                        video.playbackRate = lastPlaybackRate;
-                    } else {
-                        this.sendMessage("error", "视频解析失败")
-                    }
-                }).catch((error) => {
-                    console.log(error);
-                });
+                window.open(this.resolveInterface + this.playAddress)
             }
         }
     };

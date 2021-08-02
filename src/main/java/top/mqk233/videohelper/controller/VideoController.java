@@ -54,18 +54,4 @@ public class VideoController {
         }
         return new Result<>(ResultEnum.PARAMETER_EXCEPTION);
     }
-
-    /**
-     * 解析接口
-     *
-     * @param sourceAddress 官方地址
-     * @return 播放地址
-     */
-    @GetMapping("/resolve")
-    public Result<String> resolve(String sourceAddress) {
-        if (StringUtils.hasText(sourceAddress)) {
-            return new Result<>(ResultEnum.SUCCESS, videoService.resolve(sourceAddress));
-        }
-        return new Result<>(ResultEnum.PARAMETER_EXCEPTION);
-    }
 }

@@ -27,12 +27,4 @@ public interface VideoService {
      * @return 视频数据
      */
     VideoDetailVO detail(String address);
-
-    /**
-     * 解析接口
-     *
-     * @param sourceAddress 官方地址
-     * @return 播放地址
-     */
-    String resolve(String sourceAddress);
 }
