@@ -25,19 +25,21 @@
         <el-main>
             <el-row gutter="30" v-if="videoSearchVOs != null && videoSearchVOs.length > 0">
                 <el-col :xs="12" :sm="8" :md="6" :lg="4" :xl="3" v-for="videoSearchVOTemp in videoSearchVOs">
-                    <el-card style="text-align: center">
-                        <el-affix>
-                            <el-tag effect="plain" size="mini">{{videoSearchVOTemp.source}}</el-tag>
-                        </el-affix>
-                        <img v-bind:src=videoSearchVOTemp.cover v-bind:alt=videoSearchVOTemp.name @click="detailVideo(videoSearchVOTemp.address)"
-                             referrerpolicy="no-referrer" style="width: 120px; height: 160px">
-                        <h3 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
-                            <a target="_blank" v-bind:href=videoSearchVOTemp.address style="text-decoration: none">{{videoSearchVOTemp.name}}</a>
-                        </h3>
-                        <el-tooltip effect="light" :content="videoSearchVOTemp.actors.join(' ')" placement="bottom">
-                            <p style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{videoSearchVOTemp.actors.join(" ")}}</p>
-                        </el-tooltip>
-                    </el-card>
+                    <div class="video-card">
+                        <el-card style="text-align: center">
+                            <el-affix target=".video-card">
+                                <el-tag effect="plain" size="mini">{{videoSearchVOTemp.source}}</el-tag>
+                            </el-affix>
+                            <img v-bind:src=videoSearchVOTemp.cover v-bind:alt=videoSearchVOTemp.name @click="detailVideo(videoSearchVOTemp.address)"
+                                 referrerpolicy="no-referrer" style="width: 120px; height: 160px">
+                            <h3 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
+                                <a target="_blank" v-bind:href=videoSearchVOTemp.address style="text-decoration: none">{{videoSearchVOTemp.name}}</a>
+                            </h3>
+                            <el-tooltip effect="light" :content="videoSearchVOTemp.actors.join(' ')" placement="bottom">
+                                <p style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{videoSearchVOTemp.actors.join(" ")}}</p>
+                            </el-tooltip>
+                        </el-card>
+                    </div>
                 </el-col>
             </el-row>
             <el-dialog :title=videoDetailVO.name v-model="dialogVisible" width="80%" center="true" modal="false" destroy-on-close="true">
