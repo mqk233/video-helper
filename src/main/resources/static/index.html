@@ -26,6 +26,9 @@
             <el-row gutter="30" v-if="videoSearchVOs != null && videoSearchVOs.length > 0">
                 <el-col :xs="12" :sm="8" :md="6" :lg="4" :xl="3" v-for="videoSearchVOTemp in videoSearchVOs">
                     <el-card style="text-align: center">
+                        <el-affix>
+                            <el-tag size="mini" effect="plain">{{videoSearchVOTemp.source}}</el-tag>
+                        </el-affix>
                         <img v-bind:src=videoSearchVOTemp.cover v-bind:alt=videoSearchVOTemp.name @click="detailVideo(videoSearchVOTemp.address)"
                              referrerpolicy="no-referrer" style="width: 120px; height: 160px">
                         <h3 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
