@@ -15,6 +15,7 @@ import top.mqk233.videohelper.VO.VideoSearchVO;
 import top.mqk233.videohelper.exception.ServiceException;
 import top.mqk233.videohelper.exception.SystemException;
 import top.mqk233.videohelper.service.VideoService;
+import top.mqk233.videohelper.util.ChromiumUtils;
 import top.mqk233.videohelper.util.JsonUtils;
 
 import javax.annotation.Resource;
@@ -68,7 +69,7 @@ public class VideoServiceImpl implements VideoService {
                                             && StringUtils.hasText(g.getString("secondTitle"))
                                             && !g.getJSONArray("titleMarkLabelList").isEmpty()
                                             && !g.getJSONArray("videoSrcName").isEmpty()
-                                            && Optional.ofNullable(g.getJSONArray("videoSrcName").getJSONObject(0)).map(v -> v.getIntValue("displayType") == 0).orElse(false))
+                                            && Optional.ofNullable(g.getJSONArray("videoSrcName").getJSONObject(0)).map(x1 -> x1.getIntValue("displayType") == 0).orElse(false))
                                     .orElse(false))
                             .map(h -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
@@ -129,7 +130,7 @@ public class VideoServiceImpl implements VideoService {
 
     private VideoDetailVO tencentDetail(String address) {
         try {
-            Document document = Jsoup.connect(address).get();
+            Document document = Jsoup.connect(address).userAgent(ChromiumUtils.randomUserAgent()).get();
             VideoDetailVO videoDetailVO = new VideoDetailVO();
             Optional.ofNullable(document.selectFirst("h1.video_title_cn")).map(x1 -> x1.selectFirst("a")).map(Element::text).ifPresent(videoDetailVO::setName);
             Optional.ofNullable(document.selectFirst("span._desc_txt_lineHight")).map(Element::text).ifPresent(videoDetailVO::setDescription);
@@ -160,7 +161,7 @@ public class VideoServiceImpl implements VideoService {
 
     private VideoDetailVO iqiyiDetail(String address) {
         try {
-            Document document = Jsoup.connect(address).get();
+            Document document = Jsoup.connect(address).userAgent(ChromiumUtils.randomUserAgent()).get();
             VideoDetailVO videoDetailVO = new VideoDetailVO();
             Optional.ofNullable(document.selectFirst("h1.album-head-title")).map(x1 -> x1.selectFirst("a")).map(Element::text).ifPresent(videoDetailVO::setName);
             Optional.ofNullable(Optional.ofNullable(document.selectFirst("div.episodeIntro-brief"))

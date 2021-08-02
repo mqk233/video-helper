@@ -46,6 +46,11 @@ public class SnowFlake {
         log.info("Snowflake worker starting. worker Id: {} datacenter Id: {}", workerId, datacenterId);
     }
 
+    /**
+     * 获取下一个ID
+     *
+     * @return 下一个ID
+     */
     public synchronized long nextId() {
         long currentTimestamp = System.currentTimeMillis();
         if (currentTimestamp < lastTimestamp) {
