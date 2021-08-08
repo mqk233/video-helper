@@ -12,36 +12,34 @@
 </head>
 <body>
 <div id="videoHelper" style="margin: 1% 1%">
-    <el-container>
+    <el-container v-loading.fullscreen.lock="isSearchingLoaded">
         <el-header>
             <el-form ref="form" @submit.native.prevent>
                 <el-form-item style="text-align: center">
                     <el-input v-model="keywords" @keyup.enter.native="searchVideo" clearable style="width: 30%"></el-input>
-                    <el-button type="primary" plain icon="el-icon-search" @click="searchVideo">搜索</el-button>
+                    <el-button plain icon="el-icon-search" @click="searchVideo">搜索</el-button>
                 </el-form-item>
             </el-form>
         </el-header>
-        <el-main>
+        <el-main v-loading.fullscreen.lock="isDetailingLoaded">
             <el-row gutter="30" v-if="videoSearchVOs != null && videoSearchVOs.length > 0">
                 <el-col :xs="12" :sm="8" :md="6" :lg="4" :xl="3" v-for="videoSearchVOTemp in videoSearchVOs">
-                    <div class="video-card">
-                        <el-card style="text-align: center">
-                            <el-affix target=".video-card">
-                                <el-tag effect="plain" size="mini">{{videoSearchVOTemp.source}}</el-tag>
-                            </el-affix>
+                    <el-card style="text-align: center">
+                        <el-badge type="primary" :value=videoSearchVOTemp.source class="item">
                             <img v-bind:src=videoSearchVOTemp.cover v-bind:alt=videoSearchVOTemp.name @click="detailVideo(videoSearchVOTemp.address)"
                                  referrerpolicy="no-referrer" style="width: 120px; height: 160px">
-                            <h3 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
-                                <a target="_blank" v-bind:href=videoSearchVOTemp.address style="text-decoration: none">{{videoSearchVOTemp.name}}</a>
-                            </h3>
-                            <el-tooltip effect="light" :content="videoSearchVOTemp.actors.join(' ')" placement="bottom">
-                                <p style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{videoSearchVOTemp.actors.join(" ")}}</p>
-                            </el-tooltip>
-                        </el-card>
-                    </div>
+                        </el-badge>
+                        <h3 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
+                            <a target="_blank" v-bind:href=videoSearchVOTemp.address style="text-decoration: none">{{videoSearchVOTemp.name}}</a>
+                        </h3>
+                        <el-tooltip effect="light" :content="videoSearchVOTemp.actors.join(' ')" placement="bottom">
+                            <p style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{videoSearchVOTemp.actors.join(" ")}}</p>
+                        </el-tooltip>
+                    </el-card>
                 </el-col>
             </el-row>
-            <el-dialog :title=videoDetailVO.name v-model="dialogVisible" width="80%" center="true" modal="false" destroy-on-close="true">
+            <el-dialog :title=videoDetailVO.name v-if="videoDetailVO != null" v-model="dialogVisible" width="80%" center="true" modal="false"
+                       destroy-on-close="true">
                 <div style="text-align: center">
                     <video style="width: 100%" id="video" controls="controls" poster="cover.png" autoplay></video>
                 </div>
@@ -52,7 +50,7 @@
                         </el-select>
                     </el-col>
                     <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
-                        <el-button size="medium" @click="resolveVideo">手动解析</el-button>
+                        <el-button plain size="medium" @click="resolveVideo">手动解析</el-button>
                     </el-col>
                 </el-row>
                 <el-row gutter="20" v-if="videoDetailVO.episodes !=null && Object.keys(videoDetailVO.episodes).length > 0">
@@ -79,6 +77,8 @@
                 },
                 dialogVisible: false,
                 keywords: "",
+                isSearchingLoaded: false,
+                isDetailingLoaded: false,
                 videoSearchVO: {
                     source: "",
                     address: "",
@@ -116,28 +116,28 @@
         },
         methods: {
             searchVideo() {
+                this.isSearchingLoaded = true;
                 axios.get(this.globalVariable.backendAddress + "/video/search", {
                     params: {
                         keywords: this.keywords
                     }
                 }).then((response) => {
-                    if (response.data.code === 1000) {
-                        this.videoSearchVOs = response.data.data;
-                    }
+                    this.videoSearchVOs = response.data.data;
+                    this.isSearchingLoaded = false;
                 }).catch((error) => {
                     console.log(error);
                 });
             },
             detailVideo(address) {
+                this.isDetailingLoaded = true;
                 axios.get(this.globalVariable.backendAddress + "/video/detail", {
                     params: {
                         address: address
                     }
                 }).then((response) => {
-                    if (response.data.code === 1000) {
-                        this.videoDetailVO = response.data.data;
-                        this.dialogVisible = true;
-                    }
+                    this.videoDetailVO = response.data.data;
+                    this.isDetailingLoaded = false;
+                    this.dialogVisible = true;
                 }).catch((error) => {
                     console.log(error);
                 });
