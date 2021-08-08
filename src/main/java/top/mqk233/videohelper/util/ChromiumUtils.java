@@ -4,6 +4,7 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
 import org.apache.http.client.HttpClient;
 import org.apache.http.conn.routing.HttpRoutePlanner;
@@ -13,6 +14,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.util.CollectionUtils;
+import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
 import java.security.SecureRandom;
@@ -26,6 +28,7 @@ import java.util.Random;
  * @author mqk233
  * @since 2021-8-1
  */
+@Slf4j
 public class ChromiumUtils {
     private static final String[] CHANNELS = {"Stable", "Beta", "Dev", "Canary"};
 
@@ -50,12 +53,16 @@ public class ChromiumUtils {
         UserAgent agent = UserAgent.values()[SECURE_RANDOM.nextInt(UserAgent.values().length)];
         String fetchReleasesUrl = String.format("https://chromiumdash.appspot.com/fetch_releases?channel=%s&platform=%s&num=10&offset=0",
                 CHANNELS[SECURE_RANDOM.nextInt(CHANNELS.length)], agent.getName());
-        ResponseEntity<String> response = REST_TEMPLATE.getForEntity(fetchReleasesUrl, String.class);
-        if (response.getStatusCodeValue() == HttpStatus.OK.value()) {
-            Optional.ofNullable(response.getBody())
-                    .map(a -> JSON.parseArray(a, JSONObject.class))
-                    .filter(b -> !CollectionUtils.isEmpty(b))
-                    .ifPresent(c -> agent.version = c.get(SECURE_RANDOM.nextInt(c.size())).getString("version"));
+        try {
+            ResponseEntity<String> response = REST_TEMPLATE.getForEntity(fetchReleasesUrl, String.class);
+            if (response.getStatusCodeValue() == HttpStatus.OK.value()) {
+                Optional.ofNullable(response.getBody())
+                        .map(a -> JSON.parseArray(a, JSONObject.class))
+                        .filter(b -> !CollectionUtils.isEmpty(b))
+                        .ifPresent(c -> agent.version = c.get(SECURE_RANDOM.nextInt(c.size())).getString("version"));
+            }
+        } catch (RestClientException e) {
+            log.error("Failed to fetch chromium releases data and use default version.");
         }
         return String.format("Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", agent.getPlatform(), agent.getVersion());
     }
