@@ -43,7 +43,7 @@ public class VideoServiceImpl implements VideoService {
 
     private List<VideoSearchVO> tencentSearch(String keywords) {
         try {
-            String response = restTemplate.getForObject(new URI("https://node.video.qq.com/x/api/msearch?filterValue=tabid%3D2&keyWord=" + keywords), String.class);
+            String response = restTemplate.getForObject(new URI("https://node.video.qq.com/x/api/msearch?filterValue=tabid%3D2&keyWord=" + keywords.trim()), String.class);
             return Optional.ofNullable(response)
                     .map(JSON::parseObject)
                     .map(a -> a.getJSONArray("uiData"))
@@ -90,7 +90,7 @@ public class VideoServiceImpl implements VideoService {
 
     private List<VideoSearchVO> iqiyiSearch(String keywords) {
         try {
-            String response = restTemplate.getForObject(new URI("https://search.video.iqiyi.com/o?if=html5&channel_name=电视剧&key=" + keywords), String.class);
+            String response = restTemplate.getForObject(new URI("https://search.video.iqiyi.com/o?if=html5&channel_name=电视剧&key=" + keywords.trim()), String.class);
             return Optional.ofNullable(response)
                     .map(JSON::parseObject)
                     .map(a -> a.getJSONObject("data"))
