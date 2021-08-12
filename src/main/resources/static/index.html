@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
     <title>视频助手</title>
-    <link rel="icon" href="favicon.ico">
+    <link rel="icon" href="https://element-plus.gitee.io/favicon.ico">
     <script src="https://cdn.jsdelivr.net/npm/vue@3.1.5/dist/vue.global.prod.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/element-plus@1.0.2-beta.65/lib/theme-chalk/index.min.css">
     <script src="https://cdn.jsdelivr.net/npm/element-plus@1.0.2-beta.65/lib/index.full.min.js"></script>
@@ -40,9 +40,13 @@
             </el-row>
             <el-dialog :title=videoDetailVO.name v-if="videoDetailVO != null" v-model="dialogVisible" width="80%" center="true" modal="false"
                        destroy-on-close="true">
-                <div style="text-align: center">
-                    <video style="width: 100%" id="video" controls="controls" poster="cover.png" autoplay></video>
-                </div>
+                <el-row>
+                    <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
+                        <div style="width: 48vw; height: 27vw; margin: 0 auto 1%">
+                            <iframe id="videoFrame" width="100%" height="100%" scrolling="no" frameborder="0" allowfullscreen></iframe>
+                        </div>
+                    </el-col>
+                </el-row>
                 <el-row style="text-align: center; margin: 1% 0">
                     <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
                         <el-select size="medium" v-model="resolveInterface" style="width: 98px">
@@ -57,12 +61,12 @@
                     <el-col :xs="6" :sm="6" :md="4" :lg="2" :xl="1" v-for="(value, key) in videoDetailVO.episodes">
                         <div style="text-align: center">
                             <el-radio-group size="medium" v-model="playAddress" @change="resolveVideo">
-                                <el-radio-button style="margin: 10% 0" :label=value>{{key < 10 ? "0" + key : key}}</el-radio-button>
+                                <el-radio-button style="margin: 10% auto" :label=value>{{key < 10 ? "0" + key : key}}</el-radio-button>
                             </el-radio-group>
                         </div>
                     </el-col>
                 </el-row>
-                <p>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;{{videoDetailVO.description}}</p>
+                <p style="text-indent: 2em">{{videoDetailVO.description}}</p>
             </el-dialog>
         </el-main>
         <el-footer></el-footer>
@@ -144,7 +148,7 @@
                 });
             },
             resolveVideo() {
-                window.open(this.resolveInterface + this.playAddress)
+                document.getElementById("videoFrame").src = this.resolveInterface + this.playAddress;
             }
         }
     };
