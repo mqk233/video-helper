@@ -38,7 +38,7 @@
                     </el-card>
                 </el-col>
             </el-row>
-            <el-dialog :title=videoDetailVO.name v-if="videoDetailVO != null" v-model="dialogVisible" width="80%" center="true" modal="false"
+            <el-dialog v-if="videoDetailVO != null" v-model="dialogVisible" :title=videoDetailVO.name width="80%" center="true" modal="false"
                        destroy-on-close="true">
                 <el-row>
                     <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
@@ -50,7 +50,7 @@
                 <el-row style="text-align: center; margin: 1% 0">
                     <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
                         <el-select size="medium" v-model="resolveInterface" style="width: 98px">
-                            <el-option v-for="item in resolveInterfaces" :key="item.value" :label="item.key" :value="item.value"></el-option>
+                            <el-option v-for="item in resolveInterfaces" :label="item.key" :value="item.value"></el-option>
                         </el-select>
                     </el-col>
                     <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
