@@ -39,7 +39,7 @@
                 </el-col>
             </el-row>
             <el-dialog v-if="videoDetailVO != null" v-model="dialogVisible" :title=videoDetailVO.name width="80%" center="true" modal="false"
-                       destroy-on-close="true">
+                       @closed="videoDetailVO = null; playAddress = ''" destroy-on-close="true">
                 <el-row>
                     <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
                         <div style="width: 48vw; height: 27vw; margin: 0 auto 1%">
