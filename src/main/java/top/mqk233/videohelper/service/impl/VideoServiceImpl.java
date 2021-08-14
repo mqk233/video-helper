@@ -18,10 +18,7 @@ import top.mqk233.videohelper.util.ChromiumUtils;
 
 import javax.annotation.Resource;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -38,7 +35,11 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public List<VideoSearchVO> search(String keywords) {
-        return Stream.concat(tencentSearch(keywords).stream(), iqiyiSearch(keywords).stream()).collect(Collectors.toList());
+        return Stream.of(tencentSearch(keywords),
+                        iqiyiSearch(keywords),
+                        mangoSearch(keywords))
+                .flatMap(Collection::stream)
+                .collect(Collectors.toList());
     }
 
     private List<VideoSearchVO> tencentSearch(String keywords) {
@@ -63,8 +64,7 @@ public class VideoServiceImpl implements VideoService {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
                                 Optional.ofNullable(f.getJSONArray("videoSrcName"))
                                         .map(x1 -> x1.getJSONObject(0))
-                                        .map(x2 -> x2.getString("name"))
-                                        .map(x3 -> x3.replace("\u0005", "").replace("\u0006", ""))
+                                        .map(x2 -> x2.getString("srcName"))
                                         .ifPresent(videoSearchVO::setSource);
                                 Optional.ofNullable(f.getString("id"))
                                         .map(x1 -> String.format("https://v.qq.com/detail/m/%s.html", x1))
@@ -103,7 +103,7 @@ public class VideoServiceImpl implements VideoService {
                                     && Optional.ofNullable(e.getString("siteId")).map(x1 -> x1.equals("iqiyi")).orElse(false))
                             .map(f -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
-                                Optional.ofNullable(f.getString("siteName"))
+                                Optional.ofNullable(f.getString("siteId"))
                                         .ifPresent(videoSearchVO::setSource);
                                 Optional.ofNullable(f.getString("albumLink"))
                                         .map(x1 -> x1.replace("http", "https"))
@@ -125,6 +125,55 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
+    private List<VideoSearchVO> mangoSearch(String keywords) {
+        try {
+            String response = restTemplate.getForObject(new URI("https://mobileso.bz.mgtv.com/msite/search/v2?ty=2&q=" + keywords.trim()), String.class);
+            return Optional.ofNullable(response)
+                    .map(JSON::parseObject)
+                    .map(a -> a.getJSONObject("data"))
+                    .map(b -> b.getJSONArray("contents"))
+                    .map(c -> c.stream()
+                            .map(String::valueOf)
+                            .map(JSON::parseObject)
+                            .filter(d -> d.getString("type").equals("media"))
+                            .map(e -> e.getJSONArray("data"))
+                            .map(f -> f.getJSONObject(0))
+                            .filter(g -> Optional.ofNullable(g.getString("source")).map(x1 -> x1.equals("imgo")).orElse(false)
+                                    && Optional.ofNullable(g.getJSONArray("desc")).map(x1 -> x1.size() > 1).orElse(false))
+                            .map(h -> {
+                                VideoSearchVO videoSearchVO = new VideoSearchVO();
+                                Optional.ofNullable(h.getString("source"))
+                                        .ifPresent(videoSearchVO::setSource);
+                                Optional.ofNullable(h.getString("url"))
+                                        .map(x1 -> "https://www.mgtv.com" + x1)
+                                        .ifPresent(videoSearchVO::setAddress);
+                                Optional.ofNullable(h.getString("title"))
+                                        .map(x1 -> x1.replace("<B>", "").replace("</B>", ""))
+                                        .ifPresent(videoSearchVO::setName);
+                                Optional.ofNullable(h.getString("img"))
+                                        .map(x1 -> x1.replace("http", "https"))
+                                        .ifPresent(videoSearchVO::setCover);
+                                Optional.ofNullable(h.getJSONArray("desc"))
+                                        .map(x1 -> x1.stream()
+                                                .map(String::valueOf)
+                                                .filter(x2 -> x2.contains("主演:"))
+                                                .findFirst()
+                                                .orElse(""))
+                                        .map(x3 -> x3.split(":")[1])
+                                        .map(x4 -> x4.split(" "))
+                                        .map(Arrays::asList)
+                                        .map(x5 -> x5.stream()
+                                                .filter(StringUtils::hasText)
+                                                .collect(Collectors.toList()))
+                                        .ifPresent(videoSearchVO::setActors);
+                                return videoSearchVO;
+                            }).collect(Collectors.toList()))
+                    .orElseThrow(() -> new ServiceException("Failed to parse the response of searching mango videos."));
+        } catch (Exception e) {
+            throw new SystemException(String.format("Failed to search mango videos by keywords: %s.", keywords), e);
+        }
+    }
+
     @Override
     public VideoDetailVO detail(String address) {
         if (address.contains(VideoConstants.TENCENT_DOMAIN)) {
@@ -132,6 +181,9 @@ public class VideoServiceImpl implements VideoService {
         }
         if (address.contains(VideoConstants.IQIYI_DOMAIN)) {
             return iqiyiDetail(address);
+        }
+        if (address.contains(VideoConstants.MANGO_DOMAIN)) {
+            return mangoDetail(address);
         }
         throw new ServiceException(String.format("Unable to get the video details: %s", address));
     }
@@ -205,6 +257,51 @@ public class VideoServiceImpl implements VideoService {
             return videoDetailVO;
         } catch (Exception e) {
             throw new SystemException(String.format("Failed to search iqiyi videos by url: %s.", address), e);
+        }
+    }
+
+    private VideoDetailVO mangoDetail(String address) {
+        try {
+            String vid = address.substring(address.lastIndexOf("/") + 1, address.lastIndexOf("."));
+            String response = restTemplate.getForObject(new URI("https://pcweb.api.mgtv.com/video/info?vid=" + vid), String.class);
+            return Optional.ofNullable(response)
+                    .map(JSON::parseObject)
+                    .map(a -> a.getJSONObject("data"))
+                    .map(b -> b.getJSONObject("info"))
+                    .map(c -> {
+                        VideoDetailVO videoDetailVO = new VideoDetailVO();
+                        Optional.ofNullable(c.getString("clipName"))
+                                .ifPresent(videoDetailVO::setName);
+                        Optional.ofNullable(c.getJSONObject("detail"))
+                                .map(x1 -> x1.getString("story"))
+                                .ifPresent(videoDetailVO::setDescription);
+                        try {
+                            String response2 = restTemplate.getForObject(new URI("https://pcweb.api.mgtv.com/episode/list?video_id=" + vid), String.class);
+                            Optional.ofNullable(response2)
+                                    .map(JSON::parseObject)
+                                    .map(d -> d.getJSONObject("data"))
+                                    .map(e -> e.getJSONArray("list"))
+                                    .map(f -> f.stream()
+                                            .map(String::valueOf)
+                                            .map(JSON::parseObject)
+                                            .filter(g -> Optional.ofNullable(g.getString("isIntact")).map(x1 -> x1.equals("1")).orElse(false))
+                                            .collect(Collectors.toMap(
+                                                    h -> Optional.ofNullable(h.getString("t1"))
+                                                            .orElse("0"),
+                                                    h -> Optional.ofNullable(h.getString("url"))
+                                                            .map(x1 -> "https://www.mgtv.com" + x1)
+                                                            .orElse(""),
+                                                    (x1, x2) -> x1,
+                                                    () -> new TreeMap<>((x1, x2) -> StringUtil.isNumeric(x1) && StringUtil.isNumeric(x2) ? 1 : x1.compareTo(x2)))))
+                                    .ifPresent(videoDetailVO::setEpisodes);
+                        } catch (Exception e) {
+                            throw new SystemException(String.format("Failed to search mango videos by url: %s.", address), e);
+                        }
+                        return videoDetailVO;
+                    })
+                    .orElseThrow(() -> new ServiceException("Failed to parse the response of searching mango videos."));
+        } catch (Exception e) {
+            throw new SystemException(String.format("Failed to search mango videos by url: %s.", address), e);
         }
     }
 }

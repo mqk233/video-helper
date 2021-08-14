@@ -16,4 +16,8 @@ public class VideoConstants {
      * 爱奇艺视频主域名
      */
     public static final String IQIYI_DOMAIN = "iqiyi.com";
+    /**
+     * 芒果视频主域名
+     */
+    public static final String MANGO_DOMAIN = "mgtv.com";
 }
