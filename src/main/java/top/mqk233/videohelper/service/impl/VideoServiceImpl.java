@@ -193,7 +193,7 @@ public class VideoServiceImpl implements VideoService {
 
     private VideoDetailVO tencentDetail(String address) {
         try {
-            Document document = Jsoup.connect(address).userAgent(ChromiumUtils.randomUserAgent()).get();
+            Document document = Jsoup.connect(address).userAgent(ChromiumUtils.getUserAgent(true)).get();
             VideoDetailVO videoDetailVO = new VideoDetailVO();
             Optional.ofNullable(document.selectFirst("h1.video_title_cn"))
                     .map(x1 -> x1.selectFirst("a")).map(Element::text)
@@ -228,7 +228,7 @@ public class VideoServiceImpl implements VideoService {
 
     private VideoDetailVO iqiyiDetail(String address) {
         try {
-            Document document = Jsoup.connect(address).userAgent(ChromiumUtils.randomUserAgent()).get();
+            Document document = Jsoup.connect(address).userAgent(ChromiumUtils.getUserAgent(true)).get();
             VideoDetailVO videoDetailVO = new VideoDetailVO();
             Optional.ofNullable(document.selectFirst("h1.album-head-title"))
                     .map(x1 -> x1.selectFirst("a.title-link"))

@@ -6,8 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.http.HttpHost;
-import org.apache.http.client.HttpClient;
-import org.apache.http.conn.routing.HttpRoutePlanner;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.conn.DefaultProxyRoutePlanner;
 import org.springframework.http.HttpStatus;
@@ -26,45 +24,39 @@ import java.util.Random;
  * Chromium工具类
  *
  * @author mqk233
- * @since 2021-8-1
+ * @since 2021-8-14
  */
 @Slf4j
 public class ChromiumUtils {
     private static final String[] CHANNELS = {"Stable", "Beta", "Dev", "Canary"};
 
-    private static final Random SECURE_RANDOM;
+    private static final Random SECURE_RANDOM = new SecureRandom();
 
-    private static final RestTemplate REST_TEMPLATE;
-
-    static {
-        SECURE_RANDOM = new SecureRandom();
-        HttpRoutePlanner httpRoutePlanner = new DefaultProxyRoutePlanner(new HttpHost("127.0.0.1", 1080));
-        HttpClient httpClient = HttpClientBuilder.create().setRoutePlanner(httpRoutePlanner).build();
-        HttpComponentsClientHttpRequestFactory requestFactory = new HttpComponentsClientHttpRequestFactory(httpClient);
-        REST_TEMPLATE = new RestTemplate(requestFactory);
-    }
+    private static final RestTemplate REST_TEMPLATE = new RestTemplate(new HttpComponentsClientHttpRequestFactory(
+            HttpClientBuilder.create().setRoutePlanner(new DefaultProxyRoutePlanner(new HttpHost("127.0.0.1", 1080))).build()));
 
     /**
      * 根据chromium的release信息随机userAgent
      *
-     * @return userAgent
+     * @param random 随机或者根据当前系统生成UserAgent
+     * @return UserAgent字符串
      */
-    public static String randomUserAgent() {
-        UserAgent agent = UserAgent.values()[SECURE_RANDOM.nextInt(UserAgent.values().length)];
-        String fetchReleasesUrl = String.format("https://chromiumdash.appspot.com/fetch_releases?channel=%s&platform=%s&num=10&offset=0",
-                CHANNELS[SECURE_RANDOM.nextInt(CHANNELS.length)], agent.getName());
+    public static String getUserAgent(boolean random) {
+        UserAgent userAgent = random ? UserAgent.values()[SECURE_RANDOM.nextInt(UserAgent.values().length)] : UserAgent.getInstance();
         try {
-            ResponseEntity<String> response = REST_TEMPLATE.getForEntity(fetchReleasesUrl, String.class);
+            String channel = CHANNELS[SECURE_RANDOM.nextInt(CHANNELS.length)];
+            String url = String.format("https://chromiumdash.appspot.com/fetch_releases?channel=%s&platform=%s&num=10&offset=0", channel, userAgent.getName());
+            ResponseEntity<String> response = REST_TEMPLATE.getForEntity(url, String.class);
             if (response.getStatusCodeValue() == HttpStatus.OK.value()) {
                 Optional.ofNullable(response.getBody())
                         .map(a -> JSON.parseArray(a, JSONObject.class))
                         .filter(b -> !CollectionUtils.isEmpty(b))
-                        .ifPresent(c -> agent.version = c.get(SECURE_RANDOM.nextInt(c.size())).getString("version"));
+                        .ifPresent(c -> userAgent.version = c.get(SECURE_RANDOM.nextInt(c.size())).getString("version"));
             }
         } catch (RestClientException e) {
-            log.error("Failed to fetch chromium releases data and use default version.");
+            log.error("Failed to fetch chromium releases data for user agent and use default version.");
         }
-        return String.format("Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", agent.getPlatform(), agent.getVersion());
+        return String.format("Mozilla/5.0 (%s) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/%s Safari/537.36", userAgent.getPlatform(), userAgent.getVersion());
     }
 
     @AllArgsConstructor
@@ -81,9 +73,9 @@ public class ChromiumUtils {
         private String version;
 
         /**
-         * 通过系统变量获取枚举
+         * 通过系统变量获取UserAgent(默认Windows平台)
          *
-         * @return UserAgent
+         * @return UserAgent枚举
          */
         public static UserAgent getInstance() {
             return Arrays.stream(UserAgent.values())

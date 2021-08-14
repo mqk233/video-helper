@@ -21,7 +21,7 @@ public class RestTemplateConfig {
         return builder.customizers(restTemplate -> {
             restTemplate.setRequestFactory(new HttpComponentsClientHttpRequestFactory());
             restTemplate.getInterceptors().add((httpRequest, bytes, clientHttpRequestExecution) -> {
-                httpRequest.getHeaders().add(HttpHeaders.USER_AGENT, ChromiumUtils.randomUserAgent());
+                httpRequest.getHeaders().add(HttpHeaders.USER_AGENT, ChromiumUtils.getUserAgent(true));
                 return clientHttpRequestExecution.execute(httpRequest, bytes);
             });
         }).build();
