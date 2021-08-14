@@ -10,7 +10,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import top.mqk233.videohelper.VO.VideoDetailVO;
 import top.mqk233.videohelper.VO.VideoSearchVO;
-import top.mqk233.videohelper.constant.VideoConstants;
+import top.mqk233.videohelper.constant.VideoTypeEnum;
 import top.mqk233.videohelper.exception.ServiceException;
 import top.mqk233.videohelper.exception.SystemException;
 import top.mqk233.videohelper.service.VideoService;
@@ -179,16 +179,15 @@ public class VideoServiceImpl implements VideoService {
 
     @Override
     public VideoDetailVO detail(String address) {
-        if (address.contains(VideoConstants.TENCENT_DOMAIN)) {
-            return tencentDetail(address);
+        switch (VideoTypeEnum.matchEnumByDomain(address)) {
+            case TENCENT:
+                return tencentDetail(address);
+            case IQIYI:
+                return iqiyiDetail(address);
+            case MANGO:
+                return mangoDetail(address);
         }
-        if (address.contains(VideoConstants.IQIYI_DOMAIN)) {
-            return iqiyiDetail(address);
-        }
-        if (address.contains(VideoConstants.MANGO_DOMAIN)) {
-            return mangoDetail(address);
-        }
-        throw new ServiceException(String.format("Unable to get the video details: %s", address));
+        throw new ServiceException(String.format("Unable to get the video details by url: %s", address));
     }
 
     private VideoDetailVO tencentDetail(String address) {
