@@ -52,30 +52,32 @@ public class VideoServiceImpl implements VideoService {
                             .map(String::valueOf)
                             .map(JSON::parseObject)
                             .map(c -> c.getJSONArray("data"))
-                            .map(d -> d.getJSONObject(0))
-                            .filter(e -> e.getIntValue("dataType") == 2
-                                    && e.getIntValue("videoType") == 2
-                                    && Optional.ofNullable(e.getJSONArray("titleMarkLabelList")).map(x1 -> !x1.isEmpty()).orElse(false)
-                                    && Optional.ofNullable(e.getJSONArray("videoSrcName")).map(x1 -> !x1.isEmpty()).orElse(false)
-                                    && StringUtils.hasText(e.getString("actor"))
-                                    && Optional.ofNullable(e.getString("area")).map(x1 -> Arrays.asList("内地", "美国", "英国", "韩国", "泰国", "日本", "中国香港", "中国台湾").contains(x1)).orElse(false)
-                                    && Optional.ofNullable(e.getJSONArray("videoSrcName")).map(x1 -> x1.getJSONObject(0)).map(x2 -> x2.getIntValue("displayType") == 0).orElse(false))
-                            .map(f -> {
+                            .filter(d -> !d.isEmpty())
+                            .map(e -> e.getJSONObject(0))
+                            .filter(f -> f.getIntValue("dataType") == 2
+                                    && f.getIntValue("videoType") == 2
+                                    && Optional.ofNullable(f.getJSONArray("titleMarkLabelList")).map(x1 -> !x1.isEmpty()).orElse(false)
+                                    && Optional.ofNullable(f.getJSONArray("videoSrcName")).map(x1 -> !x1.isEmpty()).orElse(false)
+                                    && StringUtils.hasText(f.getString("actor"))
+                                    && Optional.ofNullable(f.getString("area")).map(x1 -> Arrays.asList("内地", "美国", "英国", "韩国", "泰国", "日本", "中国香港", "中国台湾").contains(x1)).orElse(false)
+                                    && Optional.ofNullable(f.getJSONArray("videoSrcName")).map(x1 -> x1.getJSONObject(0)).map(x2 -> x2.getIntValue("displayType") == 0).orElse(false))
+                            .map(g -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
-                                Optional.ofNullable(f.getJSONArray("videoSrcName"))
-                                        .map(x1 -> x1.getJSONObject(0))
-                                        .map(x2 -> x2.getString("srcName"))
+                                Optional.ofNullable(g.getJSONArray("videoSrcName"))
+                                        .filter(x1 -> !x1.isEmpty())
+                                        .map(x2 -> x2.getJSONObject(0))
+                                        .map(x3 -> x3.getString("srcName"))
                                         .ifPresent(videoSearchVO::setSource);
-                                Optional.ofNullable(f.getString("id"))
+                                Optional.ofNullable(g.getString("id"))
                                         .map(x1 -> String.format("https://v.qq.com/detail/m/%s.html", x1))
                                         .ifPresent(videoSearchVO::setAddress);
-                                Optional.ofNullable(f.getString("title"))
+                                Optional.ofNullable(g.getString("title"))
                                         .map(x1 -> x1.replace("\u0005", "").replace("\u0006", ""))
                                         .ifPresent(videoSearchVO::setName);
-                                Optional.ofNullable(f.getString("posterPic"))
+                                Optional.ofNullable(g.getString("posterPic"))
                                         .map(x1 -> x1.replace("http", "https"))
                                         .ifPresent(videoSearchVO::setCover);
-                                Optional.ofNullable(f.getString("actor"))
+                                Optional.ofNullable(g.getString("actor"))
                                         .map(x1 -> x1.replace("\u0005", "").replace("\u0006", ""))
                                         .map(x2 -> x2.split(" "))
                                         .map(Arrays::asList)
@@ -137,23 +139,24 @@ public class VideoServiceImpl implements VideoService {
                             .map(JSON::parseObject)
                             .filter(d -> d.getString("type").equals("media"))
                             .map(e -> e.getJSONArray("data"))
-                            .map(f -> f.getJSONObject(0))
-                            .filter(g -> Optional.ofNullable(g.getString("source")).map(x1 -> x1.equals("imgo")).orElse(false)
-                                    && Optional.ofNullable(g.getJSONArray("desc")).map(x1 -> x1.size() > 1).orElse(false))
-                            .map(h -> {
+                            .filter(f -> !f.isEmpty())
+                            .map(g -> g.getJSONObject(0))
+                            .filter(h -> Optional.ofNullable(h.getString("source")).map(x1 -> x1.equals("imgo")).orElse(false)
+                                    && Optional.ofNullable(h.getJSONArray("desc")).map(x1 -> x1.size() > 1).orElse(false))
+                            .map(i -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
-                                Optional.ofNullable(h.getString("source"))
+                                Optional.ofNullable(i.getString("source"))
                                         .ifPresent(videoSearchVO::setSource);
-                                Optional.ofNullable(h.getString("url"))
+                                Optional.ofNullable(i.getString("url"))
                                         .map(x1 -> "https://www.mgtv.com" + x1)
                                         .ifPresent(videoSearchVO::setAddress);
-                                Optional.ofNullable(h.getString("title"))
+                                Optional.ofNullable(i.getString("title"))
                                         .map(x1 -> x1.replace("<B>", "").replace("</B>", ""))
                                         .ifPresent(videoSearchVO::setName);
-                                Optional.ofNullable(h.getString("img"))
+                                Optional.ofNullable(i.getString("img"))
                                         .map(x1 -> x1.replace("http", "https"))
                                         .ifPresent(videoSearchVO::setCover);
-                                Optional.ofNullable(h.getJSONArray("desc"))
+                                Optional.ofNullable(i.getJSONArray("desc"))
                                         .map(x1 -> x1.stream()
                                                 .map(String::valueOf)
                                                 .filter(x2 -> x2.contains("主演:"))
@@ -298,8 +301,7 @@ public class VideoServiceImpl implements VideoService {
                             throw new SystemException(String.format("Failed to search mango videos by url: %s.", address), e);
                         }
                         return videoDetailVO;
-                    })
-                    .orElseThrow(() -> new ServiceException("Failed to parse the response of searching mango videos."));
+                    }).orElseThrow(() -> new ServiceException("Failed to parse the response of searching mango videos."));
         } catch (Exception e) {
             throw new SystemException(String.format("Failed to search mango videos by url: %s.", address), e);
         }
