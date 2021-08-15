@@ -17,7 +17,8 @@ import java.util.Arrays;
 public enum VideoTypeEnum {
     TENCENT("腾讯视频", "v.qq.com"),
     IQIYI("爱奇艺", "iqiyi.com"),
-    MANGO("芒果视频", "mgtv.com");
+    MANGO("芒果视频", "mgtv.com"),
+    YOUKU("优酷视频", "youku.com");
 
     private String name;
 
