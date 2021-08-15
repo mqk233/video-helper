@@ -1,6 +1,7 @@
 package top.mqk233.videohelper.service.impl;
 
 import com.alibaba.fastjson.JSON;
+import lombok.extern.slf4j.Slf4j;
 import org.jsoup.Jsoup;
 import org.jsoup.internal.StringUtil;
 import org.jsoup.nodes.Document;
@@ -10,7 +11,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
 import top.mqk233.videohelper.VO.VideoDetailVO;
 import top.mqk233.videohelper.VO.VideoSearchVO;
-import top.mqk233.videohelper.constant.VideoTypeEnum;
+import top.mqk233.videohelper.constant.VideoSourceEnum;
 import top.mqk233.videohelper.exception.ServiceException;
 import top.mqk233.videohelper.exception.SystemException;
 import top.mqk233.videohelper.service.VideoService;
@@ -19,6 +20,7 @@ import top.mqk233.videohelper.util.ChromiumUtils;
 import javax.annotation.Resource;
 import java.net.URI;
 import java.util.*;
+import java.util.concurrent.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -29,18 +31,34 @@ import java.util.stream.Stream;
  * @since 2021-7-28
  */
 @Service
+@Slf4j
 public class VideoServiceImpl implements VideoService {
+    private static final ExecutorService THREAD_POOL = Executors.newCachedThreadPool();
+
     @Resource
     private RestTemplate restTemplate;
 
     @Override
     public List<VideoSearchVO> search(String keywords) {
-        return Stream.of(tencentSearch(keywords),
-                        iqiyiSearch(keywords),
-                        mangoSearch(keywords),
-                        youkuSearch(keywords))
-                .flatMap(Collection::stream)
-                .collect(Collectors.toList());
+        Future<List<VideoSearchVO>> tencentFuture = THREAD_POOL.submit(() -> tencentSearch(keywords));
+        Future<List<VideoSearchVO>> iqiyiFuture = THREAD_POOL.submit(() -> iqiyiSearch(keywords));
+        Future<List<VideoSearchVO>> mangoFuture = THREAD_POOL.submit(() -> mangoSearch(keywords));
+        Future<List<VideoSearchVO>> youkuFuture = THREAD_POOL.submit(() -> youkuSearch(keywords));
+        return Stream.of(
+                callbackFuture(keywords, VideoSourceEnum.TENCENT.getId(), tencentFuture),
+                callbackFuture(keywords, VideoSourceEnum.IQIYI.getId(), iqiyiFuture),
+                callbackFuture(keywords, VideoSourceEnum.MANGO.getId(), mangoFuture),
+                callbackFuture(keywords, VideoSourceEnum.YOUKU.getId(), youkuFuture)
+        ).flatMap(Collection::stream).collect(Collectors.toList());
+    }
+
+    private List<VideoSearchVO> callbackFuture(String keywords, String source, Future<List<VideoSearchVO>> future) {
+        try {
+            return future.get(3, TimeUnit.SECONDS);
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            log.error("Searching {} videos by keywords: {} timed out.", source, keywords);
+        }
+        return new ArrayList<>();
     }
 
     private List<VideoSearchVO> tencentSearch(String keywords) {
@@ -85,9 +103,9 @@ public class VideoServiceImpl implements VideoService {
                                         .ifPresent(videoSearchVO::setActors);
                                 return videoSearchVO;
                             }).collect(Collectors.toList()))
-                    .orElseThrow(() -> new ServiceException("Failed to parse the response of searching tencent videos."));
+                    .orElseThrow(() -> new ServiceException(String.format("Failed to parse the response of searching %s videos.", VideoSourceEnum.TENCENT.getId())));
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search tencent videos by keywords: %s.", keywords), e);
+            throw new SystemException(String.format("Failed to search %s videos by keywords: %s.", VideoSourceEnum.TENCENT.getId(), keywords), e);
         }
     }
 
@@ -122,9 +140,9 @@ public class VideoServiceImpl implements VideoService {
                                         .ifPresent(videoSearchVO::setActors);
                                 return videoSearchVO;
                             }).collect(Collectors.toList()))
-                    .orElseThrow(() -> new ServiceException("Failed to parse the response of searching iqiyi videos."));
+                    .orElseThrow(() -> new ServiceException(String.format("Failed to parse the response of searching %s videos.", VideoSourceEnum.IQIYI.getId())));
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search iqiyi videos by keywords: %s.", keywords), e);
+            throw new SystemException(String.format("Failed to search %s videos by keywords: %s.", VideoSourceEnum.IQIYI.getId(), keywords), e);
         }
     }
 
@@ -172,9 +190,9 @@ public class VideoServiceImpl implements VideoService {
                                         .ifPresent(videoSearchVO::setActors);
                                 return videoSearchVO;
                             }).collect(Collectors.toList()))
-                    .orElseThrow(() -> new ServiceException("Failed to parse the response of searching mango videos."));
+                    .orElseThrow(() -> new ServiceException(String.format("Failed to parse the response of searching %s videos.", VideoSourceEnum.MANGO.getId())));
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search mango videos by keywords: %s.", keywords), e);
+            throw new SystemException(String.format("Failed to search %s videos by keywords: %s.", VideoSourceEnum.MANGO.getId(), keywords), e);
         }
     }
 
@@ -194,6 +212,7 @@ public class VideoServiceImpl implements VideoService {
                             .map(f -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
                                 Optional.ofNullable(f.getString("sourceName"))
+                                        .map(x1 -> VideoSourceEnum.getEnumByName(x1).getId())
                                         .ifPresent(videoSearchVO::setSource);
                                 Optional.ofNullable(f.getJSONObject("leftButtonDTO"))
                                         .map(x1 -> x1.getJSONObject("action"))
@@ -213,15 +232,15 @@ public class VideoServiceImpl implements VideoService {
                                         .ifPresent(videoSearchVO::setActors);
                                 return videoSearchVO;
                             }).collect(Collectors.toList()))
-                    .orElseThrow(() -> new ServiceException("Failed to parse the response of searching youku videos."));
+                    .orElseThrow(() -> new ServiceException(String.format("Failed to parse the response of searching %s videos.", VideoSourceEnum.YOUKU.getId())));
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search youku videos by keywords: %s.", keywords), e);
+            throw new SystemException(String.format("Failed to search %s videos by keywords: %s.", VideoSourceEnum.YOUKU.getId(), keywords), e);
         }
     }
 
     @Override
     public VideoDetailVO detail(String address) {
-        switch (VideoTypeEnum.matchEnumByDomain(address)) {
+        switch (VideoSourceEnum.matchEnumByDomain(address)) {
             case TENCENT:
                 return tencentDetail(address);
             case IQIYI:
@@ -265,7 +284,7 @@ public class VideoServiceImpl implements VideoService {
                     .ifPresent(videoDetailVO::setEpisodes);
             return videoDetailVO;
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search tencent videos by url: %s.", address), e);
+            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.TENCENT.getId(), address), e);
         }
     }
 
@@ -302,7 +321,7 @@ public class VideoServiceImpl implements VideoService {
                     .ifPresent(videoDetailVO::setEpisodes);
             return videoDetailVO;
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search iqiyi videos by url: %s.", address), e);
+            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.IQIYI.getId(), address), e);
         }
     }
 
@@ -341,12 +360,12 @@ public class VideoServiceImpl implements VideoService {
                                                     () -> new TreeMap<>((x1, x2) -> StringUtil.isNumeric(x1) && StringUtil.isNumeric(x2) ? 1 : x1.compareTo(x2)))))
                                     .ifPresent(videoDetailVO::setEpisodes);
                         } catch (Exception e) {
-                            throw new SystemException(String.format("Failed to search mango videos by url: %s.", address), e);
+                            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.MANGO.getId(), address), e);
                         }
                         return videoDetailVO;
-                    }).orElseThrow(() -> new ServiceException("Failed to parse the response of searching mango videos."));
+                    }).orElseThrow(() -> new ServiceException(String.format("Failed to parse the response of searching %s videos.", VideoSourceEnum.MANGO.getId())));
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search mango videos by url: %s.", address), e);
+            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.MANGO.getId(), address), e);
         }
     }
 
@@ -377,7 +396,7 @@ public class VideoServiceImpl implements VideoService {
                     .ifPresent(videoDetailVO::setEpisodes);
             return videoDetailVO;
         } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search youku videos by url: %s.", address), e);
+            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.YOUKU.getId(), address), e);
         }
     }
 }
