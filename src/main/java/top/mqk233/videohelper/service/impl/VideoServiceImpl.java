@@ -208,6 +208,7 @@ public class VideoServiceImpl implements VideoService {
                             .filter(c -> c.containsKey("commonData"))
                             .map(d -> d.getJSONObject("commonData"))
                             .filter(e -> e.getIntValue("isYouku") == 1
+                                    && e.getIntValue("hasYouku") == 1
                                     && Optional.ofNullable(e.getString("feature")).map(x1 -> x1.contains("电视剧")).orElse(false))
                             .map(f -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
