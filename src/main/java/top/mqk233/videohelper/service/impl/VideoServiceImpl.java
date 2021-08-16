@@ -215,10 +215,12 @@ public class VideoServiceImpl implements VideoService {
                                 Optional.ofNullable(f.getString("sourceName"))
                                         .map(x1 -> VideoSourceEnum.getEnumByName(x1).getId())
                                         .ifPresent(videoSearchVO::setSource);
-                                Optional.ofNullable(f.getJSONObject("leftButtonDTO"))
+                                videoSearchVO.setAddress(Optional.ofNullable(f.getJSONObject("leftButtonDTO"))
                                         .map(x1 -> x1.getJSONObject("action"))
                                         .map(x2 -> x2.getString("value"))
-                                        .ifPresent(videoSearchVO::setAddress);
+                                        .orElse(Optional.ofNullable(f.getString("realShowId"))
+                                                .map(x1 -> String.format("https://v.youku.com/v_nextstage/id_%s.html", x1))
+                                                .orElse("")));
                                 Optional.ofNullable(f.getJSONObject("titleDTO"))
                                         .map(x1 -> x1.getString("displayName"))
                                         .ifPresent(videoSearchVO::setName);
