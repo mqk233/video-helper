@@ -17,8 +17,7 @@ import java.util.Arrays;
 public enum VideoSourceEnum {
     TENCENT("qq", "腾讯视频", "v.qq.com"),
     IQIYI("iqiyi", "爱奇艺", "iqiyi.com"),
-    MANGO("imgo", "芒果TV", "mgtv.com"),
-    YOUKU("youku", "优酷", "youku.com");
+    MANGO("imgo", "芒果TV", "mgtv.com");
 
     private String id;
 
@@ -31,12 +30,5 @@ public enum VideoSourceEnum {
                 .filter(item -> address.contains(item.getDomain()))
                 .findFirst()
                 .orElseThrow(() -> new ServiceException(String.format("Unable to match the video source by url: %s", address)));
-    }
-
-    public static VideoSourceEnum getEnumByName(String name) {
-        return Arrays.stream(VideoSourceEnum.values())
-                .filter(item -> item.getName().equals(name))
-                .findFirst()
-                .orElseThrow(() -> new ServiceException(String.format("Unable to get the video source by name: %s", name)));
     }
 }

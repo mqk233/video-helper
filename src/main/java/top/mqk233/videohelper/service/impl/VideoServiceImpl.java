@@ -44,12 +44,10 @@ public class VideoServiceImpl implements VideoService {
         Future<List<VideoSearchVO>> tencentFuture = THREAD_POOL.submit(() -> tencentSearch(keywords));
         Future<List<VideoSearchVO>> iqiyiFuture = THREAD_POOL.submit(() -> iqiyiSearch(keywords));
         Future<List<VideoSearchVO>> mangoFuture = THREAD_POOL.submit(() -> mangoSearch(keywords));
-        Future<List<VideoSearchVO>> youkuFuture = THREAD_POOL.submit(() -> youkuSearch(keywords));
         return Stream.of(
                 callbackFuture(keywords, VideoSourceEnum.TENCENT.getId(), tencentFuture),
                 callbackFuture(keywords, VideoSourceEnum.IQIYI.getId(), iqiyiFuture),
-                callbackFuture(keywords, VideoSourceEnum.MANGO.getId(), mangoFuture),
-                callbackFuture(keywords, VideoSourceEnum.YOUKU.getId(), youkuFuture)
+                callbackFuture(keywords, VideoSourceEnum.MANGO.getId(), mangoFuture)
         ).flatMap(Collection::stream).collect(Collectors.toList());
     }
 
@@ -197,51 +195,6 @@ public class VideoServiceImpl implements VideoService {
         }
     }
 
-    private List<VideoSearchVO> youkuSearch(String keywords) {
-        try {
-            String response = restTemplate.getForObject(new URI("https://search.youku.com/api/search?categories=97&keyword=" + keywords.trim()), String.class);
-            return Optional.ofNullable(response)
-                    .map(JSON::parseObject)
-                    .map(a -> a.getJSONArray("pageComponentList"))
-                    .map(b -> b.stream()
-                            .map(String::valueOf)
-                            .map(JSON::parseObject)
-                            .filter(c -> c.containsKey("commonData"))
-                            .map(d -> d.getJSONObject("commonData"))
-                            .filter(e -> e.getIntValue("isYouku") == 1
-                                    && e.getIntValue("hasYouku") == 1
-                                    && Optional.ofNullable(e.getString("feature")).map(x1 -> x1.contains("电视剧")).orElse(false))
-                            .map(f -> {
-                                VideoSearchVO videoSearchVO = new VideoSearchVO();
-                                Optional.ofNullable(f.getString("sourceName"))
-                                        .map(x1 -> VideoSourceEnum.getEnumByName(x1).getId())
-                                        .ifPresent(videoSearchVO::setSource);
-                                videoSearchVO.setAddress(Optional.ofNullable(f.getJSONObject("leftButtonDTO"))
-                                        .map(x1 -> x1.getJSONObject("action"))
-                                        .map(x2 -> x2.getString("value"))
-                                        .orElse(Optional.ofNullable(f.getString("realShowId"))
-                                                .map(x1 -> String.format("https://v.youku.com/v_nextstage/id_%s.html", x1))
-                                                .orElse("")));
-                                Optional.ofNullable(f.getJSONObject("titleDTO"))
-                                        .map(x1 -> x1.getString("displayName"))
-                                        .ifPresent(videoSearchVO::setName);
-                                Optional.ofNullable(f.getJSONObject("posterDTO"))
-                                        .map(x1 -> x1.getString("vThumbUrl"))
-                                        .map(x2 -> x2.replace("http", "https"))
-                                        .ifPresent(videoSearchVO::setCover);
-                                Optional.ofNullable(f.getString("director"))
-                                        .map(x1 -> x1.split("：")[1])
-                                        .map(x2 -> x2.split(" "))
-                                        .map(Arrays::asList)
-                                        .ifPresent(videoSearchVO::setActors);
-                                return videoSearchVO;
-                            }).collect(Collectors.toList()))
-                    .orElseThrow(() -> new ServiceException(String.format("Failed to parse the response of searching %s videos.", VideoSourceEnum.YOUKU.getId())));
-        } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search %s videos by keywords: %s.", VideoSourceEnum.YOUKU.getId(), keywords), e);
-        }
-    }
-
     @Override
     public VideoDetailVO detail(String address) {
         switch (VideoSourceEnum.matchEnumByDomain(address)) {
@@ -251,8 +204,6 @@ public class VideoServiceImpl implements VideoService {
                 return iqiyiDetail(address);
             case MANGO:
                 return mangoDetail(address);
-            case YOUKU:
-                return youkuDetail(address);
         }
         throw new ServiceException(String.format("Unable to get the video details by url: %s", address));
     }
@@ -383,37 +334,6 @@ public class VideoServiceImpl implements VideoService {
             return episodes;
         } catch (Exception e) {
             throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.MANGO.getId(), address), e);
-        }
-    }
-
-    private VideoDetailVO youkuDetail(String address) {
-        try {
-            Document document = Jsoup.connect(address).userAgent(ChromiumUtils.getUserAgent(true)).header("authority", "v.youku.com").get();
-            VideoDetailVO videoDetailVO = new VideoDetailVO();
-            Optional.ofNullable(document.selectFirst("a.title-link"))
-                    .map(Element::text)
-                    .ifPresent(videoDetailVO::setName);
-            Optional.ofNullable(document.selectFirst("div.info"))
-                    .map(Element::text)
-                    .ifPresent(videoDetailVO::setDescription);
-            Optional.ofNullable(document.selectFirst("div.anthology-content"))
-                    .map(Element::children)
-                    .map(x1 -> x1.stream()
-                            .collect(Collectors.toMap(
-                                    x2 -> Optional.ofNullable(x2)
-                                            .map(x3 -> x3.attr("data-spm"))
-                                            .map(z -> z.substring(z.lastIndexOf("_") + 1))
-                                            .orElse("0"),
-                                    x4 -> Optional.ofNullable(x4)
-                                            .map(x5 -> x5.attr("href"))
-                                            .map(x6 -> x6.replace("http", "https"))
-                                            .orElse(""),
-                                    (x7, x8) -> x7,
-                                    () -> new TreeMap<>((x9, x10) -> StringUtil.isNumeric(x9) && StringUtil.isNumeric(x10) ? 1 : x9.compareTo(x10)))))
-                    .ifPresent(videoDetailVO::setEpisodes);
-            return videoDetailVO;
-        } catch (Exception e) {
-            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.YOUKU.getId(), address), e);
         }
     }
 }
