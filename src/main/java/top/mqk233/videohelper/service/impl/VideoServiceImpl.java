@@ -21,6 +21,7 @@ import javax.annotation.Resource;
 import java.net.URI;
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -148,7 +149,7 @@ public class VideoServiceImpl implements VideoService {
 
     private List<VideoSearchVO> mangoSearch(String keywords) {
         try {
-            String response = restTemplate.getForObject(new URI("https://mobileso.bz.mgtv.com/msite/search/v2?ty=2&q=" + keywords.trim()), String.class);
+            String response = restTemplate.getForObject(new URI("https://mobileso.bz.mgtv.com/msite/search/v2?q=" + keywords.trim()), String.class);
             return Optional.ofNullable(response)
                     .map(JSON::parseObject)
                     .map(a -> a.getJSONObject("data"))
@@ -343,30 +344,43 @@ public class VideoServiceImpl implements VideoService {
                         Optional.ofNullable(c.getJSONObject("detail"))
                                 .map(x1 -> x1.getString("story"))
                                 .ifPresent(videoDetailVO::setDescription);
-                        try {
-                            String response2 = restTemplate.getForObject(new URI("https://pcweb.api.mgtv.com/episode/list?video_id=" + vid), String.class);
-                            Optional.ofNullable(response2)
-                                    .map(JSON::parseObject)
-                                    .map(d -> d.getJSONObject("data"))
-                                    .map(e -> e.getJSONArray("list"))
-                                    .map(f -> f.stream()
-                                            .map(String::valueOf)
-                                            .map(JSON::parseObject)
-                                            .filter(g -> Optional.ofNullable(g.getString("isIntact")).map(x1 -> x1.equals("1")).orElse(false))
-                                            .collect(Collectors.toMap(
-                                                    h -> Optional.ofNullable(h.getString("t1"))
-                                                            .orElse("0"),
-                                                    h -> Optional.ofNullable(h.getString("url"))
-                                                            .map(x1 -> "https://www.mgtv.com" + x1)
-                                                            .orElse(""),
-                                                    (x1, x2) -> x1,
-                                                    () -> new TreeMap<>((x1, x2) -> StringUtil.isNumeric(x1) && StringUtil.isNumeric(x2) ? 1 : x1.compareTo(x2)))))
-                                    .ifPresent(videoDetailVO::setEpisodes);
-                        } catch (Exception e) {
-                            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.MANGO.getId(), address), e);
-                        }
+                        videoDetailVO.setEpisodes(getMangoEpisodes(address, vid, 1));
                         return videoDetailVO;
                     }).orElseThrow(() -> new ServiceException(String.format("Failed to parse the response of searching %s videos.", VideoSourceEnum.MANGO.getId())));
+        } catch (Exception e) {
+            throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.MANGO.getId(), address), e);
+        }
+    }
+
+    private Map<String, String> getMangoEpisodes(String address, String vid, int pageNumber) {
+        try {
+            AtomicInteger totalPage = new AtomicInteger(0);
+            String response = restTemplate.getForObject(new URI(String.format("https://pcweb.api.mgtv.com/episode/list?video_id=%s&page=%s&size=50", vid, pageNumber)), String.class);
+            TreeMap<String, String> episodes = new TreeMap<>((x1, x2) -> StringUtil.isNumeric(x1) && StringUtil.isNumeric(x2) ? 1 : x1.compareTo(x2));
+            episodes.putAll(Optional.ofNullable(response)
+                    .map(JSON::parseObject)
+                    .map(a -> a.getJSONObject("data"))
+                    .map(b -> {
+                        totalPage.set(b.getIntValue("total_page"));
+                        return Optional.ofNullable(b.getJSONArray("list"))
+                                .map(x1 -> x1.stream()
+                                        .map(String::valueOf)
+                                        .map(JSON::parseObject)
+                                        .filter(x2 -> Optional.ofNullable(x2.getString("isIntact")).map(x3 -> x3.equals("1")).orElse(false))
+                                        .collect(Collectors.toMap(
+                                                x4 -> Optional.ofNullable(x4.getString("t1"))
+                                                        .orElse("0"),
+                                                x5 -> Optional.ofNullable(x5.getString("url"))
+                                                        .map(x6 -> "https://www.mgtv.com" + x6)
+                                                        .orElse(""),
+                                                (x7, x8) -> x7,
+                                                () -> new TreeMap<>((x9, x10) -> StringUtil.isNumeric(x9) && StringUtil.isNumeric(x10) ? 1 : x9.compareTo(x10)))))
+                                .orElse(new TreeMap<>());
+                    }).orElse(new TreeMap<>()));
+            if (pageNumber < totalPage.get()) {
+                episodes.putAll(getMangoEpisodes(address, vid, pageNumber + 1));
+            }
+            return episodes;
         } catch (Exception e) {
             throw new SystemException(String.format("Failed to search %s videos by url: %s.", VideoSourceEnum.MANGO.getId(), address), e);
         }
