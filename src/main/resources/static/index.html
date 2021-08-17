@@ -39,11 +39,11 @@
                 </el-col>
             </el-row>
             <el-dialog v-if="videoDetailVO != null" v-model="dialogVisible" :title=videoDetailVO.name width="80%" center="true" modal="false"
-                       @closed="closeDialog" destroy-on-close="true">
+                       @close="closeDialog" destroy-on-close="true">
                 <el-row>
                     <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
                         <div style="width: 48vw; height: 27vw; margin: 0 auto 1%">
-                            <iframe id="videoFrame" width="100%" height="100%" scrolling="no" frameborder="0" allowfullscreen></iframe>
+                            <iframe id="videoFrame" src="about:blank" width="100%" height="100%" scrolling="no" frameborder="0" allowfullscreen></iframe>
                         </div>
                     </el-col>
                 </el-row>
@@ -98,7 +98,7 @@
                 },
                 playAddress: "",
                 resolveInterfaces: [
-                    {key: "接口1", value: "https://jiexi.8old.cn/m3u8tv20210705%60/?url="},
+                    {key: "接口1", value: "https://jiexi.8old.cn/m3u8tv20210705%60/?url="}, // https://jx.m3u8.tv/jiexi/?url=
                     {key: "接口2", value: "https://jx.duzheba.cn/?url="},
                     {key: "接口3", value: "https://jsap.88wuma.com/?url="},
                     {key: "接口4", value: "https://www.1717yun.com/jx/ty.php?url="},
@@ -141,7 +141,7 @@
                 document.getElementById("videoFrame").src = this.resolveInterface + this.playAddress;
             },
             closeDialog() {
-                document.getElementById("videoFrame").src = "";
+                document.getElementById("videoFrame").src = "about:blank";
                 this.videoDetailVO = {};
                 this.playAddress = "";
             }
