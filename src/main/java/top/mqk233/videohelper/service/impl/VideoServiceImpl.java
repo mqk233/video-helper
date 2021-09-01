@@ -34,16 +34,15 @@ import java.util.stream.Stream;
 @Service
 @Slf4j
 public class VideoServiceImpl implements VideoService {
-    private static final ExecutorService THREAD_POOL = Executors.newCachedThreadPool();
-
     @Resource
     private RestTemplate restTemplate;
 
     @Override
     public List<VideoSearchVO> search(String keywords) {
-        Future<List<VideoSearchVO>> tencentFuture = THREAD_POOL.submit(() -> tencentSearch(keywords));
-        Future<List<VideoSearchVO>> iqiyiFuture = THREAD_POOL.submit(() -> iqiyiSearch(keywords));
-        Future<List<VideoSearchVO>> mangoFuture = THREAD_POOL.submit(() -> mangoSearch(keywords));
+        CompletableFuture<List<VideoSearchVO>> tencentFuture = CompletableFuture.supplyAsync(() -> tencentSearch(keywords));
+        CompletableFuture<List<VideoSearchVO>> iqiyiFuture = CompletableFuture.supplyAsync(() -> iqiyiSearch(keywords));
+        CompletableFuture<List<VideoSearchVO>> mangoFuture = CompletableFuture.supplyAsync(() -> mangoSearch(keywords));
+        CompletableFuture.allOf(tencentFuture, iqiyiFuture, mangoFuture).join();
         return Stream.of(
                 callbackFuture(keywords, VideoSourceEnum.TENCENT.getId(), tencentFuture),
                 callbackFuture(keywords, VideoSourceEnum.IQIYI.getId(), iqiyiFuture),

@@ -16,7 +16,8 @@
         <el-header>
             <el-form ref="form" @submit.native.prevent>
                 <el-form-item style="text-align: center">
-                    <el-input v-model="keywords" @keyup.enter.native="searchVideo" clearable style="width: 30%"></el-input>
+                    <el-input v-model="keywords" @keyup.enter.native="searchVideo" clearable
+                              style="width: 30%"></el-input>
                     <el-button plain icon="el-icon-search" @click="searchVideo">搜索</el-button>
                 </el-form-item>
             </el-form>
@@ -26,42 +27,50 @@
                 <el-col :xs="12" :sm="8" :md="6" :lg="4" :xl="3" v-for="videoSearchVOTemp in videoSearchVOs">
                     <el-card style="text-align: center">
                         <el-badge type="primary" :value=videoSearchVOTemp.source class="item">
-                            <img v-bind:src=videoSearchVOTemp.cover v-bind:alt=videoSearchVOTemp.name @click="detailVideo(videoSearchVOTemp.address)"
+                            <img v-bind:src=videoSearchVOTemp.cover v-bind:alt=videoSearchVOTemp.name
+                                 @click="detailVideo(videoSearchVOTemp.address)"
                                  referrerpolicy="no-referrer" style="width: 120px; height: 160px">
                         </el-badge>
                         <h3 style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
-                            <a target="_blank" v-bind:href=videoSearchVOTemp.address style="text-decoration: none">{{videoSearchVOTemp.name}}</a>
+                            <a target="_blank" v-bind:href=videoSearchVOTemp.address
+                               style="text-decoration: none">{{videoSearchVOTemp.name}}</a>
                         </h3>
                         <el-tooltip effect="light" :content="videoSearchVOTemp.actors.join(' ')" placement="bottom">
-                            <p style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{videoSearchVOTemp.actors.join(" ")}}</p>
+                            <p style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis">
+                                {{videoSearchVOTemp.actors.join(" ")}}</p>
                         </el-tooltip>
                     </el-card>
                 </el-col>
             </el-row>
-            <el-dialog v-if="videoDetailVO != null" v-model="dialogVisible" :title=videoDetailVO.name width="80%" center="true" modal="false"
+            <el-dialog v-if="videoDetailVO != null" v-model="dialogVisible" :title=videoDetailVO.name width="80%"
+                       center="true" modal="false"
                        @close="closeDialog" destroy-on-close="true">
                 <el-row>
                     <el-col :xs="24" :sm="24" :md="24" :lg="24" :xl="24">
                         <div style="width: 48vw; height: 27vw; margin: 0 auto 1%">
-                            <iframe id="videoFrame" src="about:blank" width="100%" height="100%" scrolling="no" frameborder="0" allowfullscreen></iframe>
+                            <iframe id="videoFrame" src="about:blank" width="100%" height="100%" scrolling="no"
+                                    frameborder="0" allowfullscreen></iframe>
                         </div>
                     </el-col>
                 </el-row>
                 <el-row style="text-align: center; margin: 1% 0">
                     <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
                         <el-select size="medium" v-model="resolveInterface" style="width: 98px">
-                            <el-option v-for="item in resolveInterfaces" :label="item.key" :value="item.value"></el-option>
+                            <el-option v-for="item in resolveInterfaces" :label="item.key"
+                                       :value="item.value"></el-option>
                         </el-select>
                     </el-col>
                     <el-col :xs="12" :sm="12" :md="12" :lg="12" :xl="12">
                         <el-button plain size="medium" @click="resolveVideo">手动解析</el-button>
                     </el-col>
                 </el-row>
-                <el-row gutter="20" v-if="videoDetailVO.episodes !=null && Object.keys(videoDetailVO.episodes).length > 0">
+                <el-row gutter="20"
+                        v-if="videoDetailVO.episodes !=null && Object.keys(videoDetailVO.episodes).length > 0">
                     <el-col :xs="6" :sm="6" :md="4" :lg="2" :xl="1" v-for="(value, key) in videoDetailVO.episodes">
                         <div style="text-align: center">
                             <el-radio-group size="medium" v-model="playAddress" @change="resolveVideo">
-                                <el-radio-button style="margin: 10% auto" :label=value>{{key < 10 ? "0" + key : key}}</el-radio-button>
+                                <el-radio-button style="margin: 10% auto" :label=value>{{key < 10 ? "0" + key : key}}
+                                </el-radio-button>
                             </el-radio-group>
                         </div>
                     </el-col>
@@ -104,7 +113,8 @@
                     {key: "接口4", value: "https://www.1717yun.com/jx/ty.php?url="},
                     {key: "接口5", value: "https://vip.parwix.com:4433/player/analysis.php?v="},
                     {key: "接口6", value: "https://jx.aidouer.net/?url="},
-                    {key: "接口7", value: "https://sb.5gseo.net/?url="}
+                    {key: "接口7", value: "https://api.lanmaody.com/dm/analysis.php?v="},
+                    {key: "接口8", value: "https://sb.5gseo.net/?url="}
                 ],
                 resolveInterface: "https://jiexi.8old.cn/m3u8tv20210705%60/?url="
             };
