@@ -159,7 +159,7 @@ public class VideoServiceImpl implements VideoService {
                             .filter(f -> !f.isEmpty())
                             .map(g -> g.getJSONObject(0))
                             .filter(h -> Optional.ofNullable(h.getString("source")).map(x1 -> x1.equals("imgo")).orElse(false)
-                                    && Optional.ofNullable(h.getJSONArray("desc")).map(x1 -> x1.size() > 1).orElse(false))
+                                    && Optional.ofNullable(h.getJSONArray("desc")).map(x1 -> x1.size() > 1 && x1.stream().anyMatch(x2 -> String.valueOf(x2).contains("电视剧"))).orElse(false))
                             .map(i -> {
                                 VideoSearchVO videoSearchVO = new VideoSearchVO();
                                 Optional.ofNullable(i.getString("source"))
